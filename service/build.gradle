@@ -1,0 +1,105 @@
+
+plugins{
+    id('application')
+    id("com.dorongold.task-tree") version "3.0.0"
+    id 'org.unbroken-dome.test-sets' version '4.0.0'
+    id("maven-publish")
+
+}
+println findProperty("Hello")
+publishing {
+    publications {
+        maven(MavenPublication){
+            from components.java
+        }
+    }
+}
+java {
+    toolchain {
+        languageVersion=JavaLanguageVersion.of(17)
+    }
+}
+application{
+    mainClass="com.gradlehero.themepark.RideStatusService"
+}
+group("themePark-status")
+description("Theme Park Status Service")
+version("1.0.0")
+ext {
+    junitJupiterVersion="5.7.2"
+}
+repositories {
+//    gradlePluginPortal()
+    mavenCentral()
+    maven{
+        name="maven"
+        url 'https://nexus.az.ebrd.com:8081/repository/ebrd-maven-public'
+        credentials(PasswordCredentials)
+//        allowInsecureProtocol = true
+    }
+}
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    failFast=false
+//    exclude "**/*RideStatusServiceFailureTest*"
+
+}
+tasks.register("testNG",Test){
+    group "verification"
+    useTestNG()
+
+}
+tasks.named("processResources"){
+    include "**/*.txt"
+}
+tasks.withType(JavaCompile).configureEach {
+    options.verbose=false
+}
+//tasks.named("jar"){
+//
+//    manifest {
+//
+//    }
+//}
+tasks.withType(Jar){
+    println ("Configuration")
+    manifest {
+        attributes('Main-Class':'com.gradlehero.themepark.RideStatusService')
+    }
+//    archiveFileName="Hello"
+}
+tasks.register("runJar",JavaExec){
+    group "application"
+    classpath tasks.named("jar").map{it.outputs}
+    classpath configurations.runtimeClasspath
+    args " rollercoaster"
+    mainClass="com.gradlehero.themepark.RideStatusService"
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+//tasks.withType(JavaExec).configureEach {
+//    javaLauncher=javaToolchains.launcherFor(
+//            languageVersion=JavaLanguageVersion.of(19)
+//    )
+//}
+
+dependencies {
+    testImplementation("org.junit.jupiter:junit-jupiter-api:$junitJupiterVersion")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:$junitJupiterVersion")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion")
+    testRuntimeOnly ("org.junit.vintage:junit-vintage-engine:$junitJupiterVersion")
+    testImplementation("junit:junit:4.13.2")
+    testImplementation 'org.testng:testng:7.4.0'
+    annotationProcessor("org.projectlombok:lombok:1.18.20")
+    implementation("org.apache.commons:commons-lang3:3.12.0")
+
+}
+
+testSets {
+    integrationTest
+}
+tasks.named("check"){
+    dependsOn(tasks.named("integrationTest"))
+}
+
